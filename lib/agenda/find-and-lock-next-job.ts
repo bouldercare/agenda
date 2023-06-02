@@ -23,56 +23,62 @@ export const findAndLockNextJob = async function (
   const lockDeadline = new Date(Date.now().valueOf() - definition.lockLifetime);
   debug("_findAndLockNextJob(%s, [Function])", jobName);
 
-  const JOB_PROCESS_WHERE_QUERY = {
-    $and: [
-      {
-        name: jobName,
-        disabled: { $ne: true },
-      },
-      {
-        $or: [
-          {
-            lockedAt: { $eq: null },
-            nextRunAt: { $lte: this._nextScanAt },
-          },
-          {
-            lockedAt: { $lte: lockDeadline },
-          },
-        ],
-      },
-    ],
-  };
+  const JOB_PROCESS_WHERE_QUERIES = [
+    {
+      $and: [
+        {
+          name: jobName,
+          disabled: { $ne: true },
+        },
+        {
+          lockedAt: { $eq: null },
+          nextRunAt: { $lte: this._nextScanAt },
+        },
+      ],
+    },
+    {
+      $and: [
+        {
+          name: jobName,
+          disabled: { $ne: true },
+        },
+        {
+          lockedAt: { $lte: lockDeadline },
+        },
+      ],
+    },
+  ];
 
-  /**
-   * Query used to set a job as locked
-   * @type {{$set: {lockedAt: Date}}}
-   */
-  const JOB_PROCESS_SET_QUERY = { $set: { lockedAt: now } };
+  for (const JOB_PROCESS_WHERE_QUERY of JOB_PROCESS_WHERE_QUERIES) {
+    /**
+     * Query used to set a job as locked
+     * @type {{$set: {lockedAt: Date}}}
+     */
+    const JOB_PROCESS_SET_QUERY = { $set: { lockedAt: now } };
 
-  /**
-   * Query used to affect what gets returned
-   * @type {{returnOriginal: boolean, sort: object}}
-   */
-  const JOB_RETURN_QUERY = { returnDocument: "after", sort: this._sort };
+    /**
+     * Query used to affect what gets returned
+     * @type {{returnOriginal: boolean, sort: object}}
+     */
+    const JOB_RETURN_QUERY = { returnDocument: "after", sort: this._sort };
 
-  // Find ONE and ONLY ONE job and set the 'lockedAt' time so that job begins to be processed
-  const result = await this._collection.findOneAndUpdate(
-    JOB_PROCESS_WHERE_QUERY,
-    JOB_PROCESS_SET_QUERY,
-    // @ts-ignore
-    JOB_RETURN_QUERY
-  );
-
-  let job: Job | undefined = undefined;
-  if (result.value) {
-    debug(
-      "found a job available to lock, creating a new job on Agenda with id [%s]",
-      result.value._id
+    // Find ONE and ONLY ONE job and set the 'lockedAt' time so that job begins to be processed
+    const result = await this._collection.findOneAndUpdate(
+      JOB_PROCESS_WHERE_QUERY,
+      JOB_PROCESS_SET_QUERY,
+      // @ts-ignore
+      JOB_RETURN_QUERY
     );
 
-    // @ts-ignore
-    job = createJob(this, result.value);
-  }
+    if (result.value) {
+      debug(
+        "found a job available to lock, creating a new job on Agenda with id [%s]",
+        result.value._id
+      );
 
-  return job;
+      // @ts-ignore
+      return createJob(this, result.value);
+    }
+  }
+  return undefined;
 };
