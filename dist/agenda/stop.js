@@ -48,7 +48,7 @@ const stop = function () {
             });
         });
         debug("Agenda.stop called, clearing interval for processJobs()");
-        clearInterval(this._processInterval);
+        clearTimeout(this._processInterval);
         this._processInterval = undefined;
         return _unlockJobs();
     });

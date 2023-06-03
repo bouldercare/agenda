@@ -23,5 +23,8 @@ export const start = async function (this: Agenda): Promise<void | unknown> {
     this._processEvery
   );
 
-  process.nextTick(processJobs.bind(this));
+  this._processInterval = setTimeout(
+    processJobs.bind(this),
+    this._processEvery
+  );
 };
