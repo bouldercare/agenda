@@ -53,6 +53,11 @@ export const processJobs = async function (
     await lockOnTheFly();
   }
 
+  this._processInterval = setTimeout(
+    processJobs.bind(this),
+    this._processEvery
+  );
+
   /**
    * Returns true if a job of the specified name can be locked.
    * Considers maximum locked jobs at any time if self._lockLimit is > 0

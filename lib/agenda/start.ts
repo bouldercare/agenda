@@ -22,9 +22,9 @@ export const start = async function (this: Agenda): Promise<void | unknown> {
     "Agenda.start called, creating interval to call processJobs every [%dms]",
     this._processEvery
   );
-  this._processInterval = setInterval(
+
+  this._processInterval = setTimeout(
     processJobs.bind(this),
     this._processEvery
   );
-  process.nextTick(processJobs.bind(this));
 };
