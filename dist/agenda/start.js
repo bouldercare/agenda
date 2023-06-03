@@ -31,7 +31,6 @@ const start = function () {
         }
         yield this._ready;
         debug("Agenda.start called, creating interval to call processJobs every [%dms]", this._processEvery);
-        this._processInterval = setInterval(utils_1.processJobs.bind(this), this._processEvery);
         process.nextTick(utils_1.processJobs.bind(this));
     });
 };
